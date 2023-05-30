@@ -2,19 +2,19 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv").config();
-const app = express();
-const Stripe=require("stripe");
+const Stripe = require('stripe')
 
+const app = express();
 app.use(cors());
+app.use(express.json({ limit: "10mb" }));
+
 const PORT = process.env.PORT || 8080;
 
 //mongodb connection
-
+mongoose.set("strictQuery", false);
 mongoose
   .connect(process.env.MONGODB_URL)
-  .then(() => {
-    console.log("Connection to Database");
-  })
+  .then(() => console.log("Connect to Databse"))
   .catch((err) => console.log(err));
 
 //schema
@@ -29,93 +29,90 @@ const userSchema = mongoose.Schema({
   confirmPassword: String,
   image: String,
 });
+
+//
 const userModel = mongoose.model("user", userSchema);
 
-app.use(express.json({ limit: "10mb" }));
-
+//api
 app.get("/", (req, res) => {
-  res.send("server is Running");
+  res.send("Server is running");
 });
-// signup
+
+//sign up
 app.post("/signup", async (req, res) => {
-  console.log(req.body);
+  // console.log(req.body);
   const { email } = req.body;
-  try {
-    const userData = await userModel.findOne({ email: email });
-    if (userData) {
+
+  userModel.findOne({ email: email }, (err, result) => {
+    // console.log(result);
+    console.log(err);
+    if (result) {
       res.send({ message: "Email id is already register", alert: false });
     } else {
       const data = userModel(req.body);
       const save = data.save();
       res.send({ message: "Successfully sign up", alert: true });
     }
-  } catch (err) {
-    console.log(err);
-  }
+  });
 });
 
-// if(result){
-//     res.send({message :"Email id is already register"})
-// }
-// else{
-//     const data=userModel(req.body)
-//     const save=data.save()
-//     res.send({message:"Successfully sign up"})
-// }
-
-//login
-app.post("/login",async (req, res) => {
-  console.log(req.body);
+//api login
+app.post("/login", (req, res) => {
+  // console.log(req.body);
   const { email } = req.body;
-  try {
-    const userData = await userModel.findOne({ email: email });
-     if (userData) {
-       //console.log(userData)
-      const dataSend={
-        _id: userData._id,
-        firstName: userData.firstName,
-       lastName: userData.lastName,
-       email: userData.email,
-       image:userData.image,
+  userModel.findOne({ email: email }, (err, result) => {
+    if (result) {
+      const dataSend = {
+        _id: result._id,
+        firstName: result.firstName,
+        lastName: result.lastName,
+        email: result.email,
+        image: result.image,
       };
-      
-      res.send({ message: "Login is Successful", alert: true ,data:dataSend});
+      console.log(dataSend);
+      res.send({
+        message: "Login is successfully",
+        alert: true,
+        data: dataSend,
+      });
+    } else {
+      res.send({
+        message: "Email is not available, please sign up",
+        alert: false,
+      });
     }
-     else {
-        res.send({ message: "Email is not registered ,Please go into Sign up page", alert: false});
-   
-    }
-  } catch (err) {
-    console.log(err);
-  }
+  });
 });
 
-//product list
-const schemaProduct=mongoose.Schema({
-     name:String,
-    category:String,
-    image:String,
-    price:String,
-    description:String
-})
+//product section
 
-const productModel=mongoose.model("product",schemaProduct);
+const schemaProduct = mongoose.Schema({
+  name: String,
+  category:String,
+  image: String,
+  price: String,
+  description: String,
+});
+const productModel = mongoose.model("product",schemaProduct)
 
-// upload in database mongodb
+
+
+//save product in data 
+//api
 app.post("/uploadProduct",async(req,res)=>{
-  console.log(req.body);
-  const data=await productModel(req.body)
-  const dataSave=await data.save() ;
-  res.send({message:"Upload Sucessfully"})
+    // console.log(req.body)
+    const data = await productModel(req.body)
+    const datasave = await data.save()
+    res.send({message : "Upload successfully"})
 })
 
-// to get data
-app.get("/product",async (req,res)=>{
-  const data= await productModel.find({})
-  res.send(JSON.stringify(data)) ;
+//
+app.get("/product",async(req,res)=>{
+  const data = await productModel.find({})
+  res.send(JSON.stringify(data))
 })
+ 
 
 
-app.listen(PORT, () => {
-  console.log(`Connection is enable at ${PORT}`);
-});
+//server is ruuning
+app.listen(PORT, () => console.log("server is running at port : " + PORT));
